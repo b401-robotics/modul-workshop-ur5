@@ -61,6 +61,7 @@ services:
       - ros_robot_net
     depends_on:
       - foxglove_bridge
+    entrypoint: [ "nginx", "-g", "daemon off;" ]
 
 # Define the custom bridge network with a specified subnet range
 networks:
