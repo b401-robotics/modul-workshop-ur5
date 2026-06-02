@@ -8,6 +8,8 @@ services:
     environment:
       - ACCEPT_EULA=true
       - ROBOT_MODEL=UR5
+    volumes:
+      - ursim_programs:/ursim/programs
     # We expose the browser VNC/noVNC port to the host machine
     ports:
       - "6080:6080"
@@ -56,3 +58,7 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
+
+volumes:
+  ursim_programs:
+    driver: local
