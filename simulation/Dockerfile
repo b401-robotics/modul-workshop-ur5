@@ -1,5 +1,5 @@
 # Use the official ROS 2 Humble desktop base (includes robot_state_publisher)
-FROM ros:humble-desktop-full
+FROM ros:humble
 
 # Set environment variables to prevent interactive prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
