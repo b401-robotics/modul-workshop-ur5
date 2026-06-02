@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Service 1: The URSim Robot Simulator
+  ursim:
+    image: universalrobots/ursim_cb3:latest
+    container_name: ursim_cb3
+    environment:
+      - ACCEPT_EULA=true
+      - ROBOT_MODEL=UR5
+    # We expose the browser VNC/noVNC port to the host machine
+    ports:
+      - "6080:6080"
+    networks:
+      ros_robot_net:
+        ipv4_address: 172.20.0.10  # Assign a fixed static IP to URSim
+
+  # Service 2: The ROS 2 Driver targeting the fixed URSim IP
+  ur_driver:
+    build: .
+    container_name: ur_ros2_driver
+    ipc: host
+    environment:
+      - ROS_DISTRO=humble
+    # The robot_ip parameter is now hardcoded to match URSim's static network IP
+    command: >
+      ros2 launch ur_robot_driver ur_control.launch.py 
+      ur_type:=ur5 
+      robot_ip:=172.20.0.10 
+      launch_rviz:=false
+    networks:
+      - ros_robot_net
+    depends_on:
+      - ursim
+
+  # Service 3: The Foxglove Bridge Node
+  foxglove_bridge:
+    build: .
+    container_name: foxglove_bridge
+    ipc: host
+    # Open the websocket port to the Host OS so your native Foxglove app can connect
+    ports:
+      - "8765:8765"
+    environment:
+      - ROS_DISTRO=humble
+    networks:
+      - ros_robot_net
+    depends_on:
+      - ur_driver
+    command: ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765
+
+# Define the custom bridge network with a specified subnet range
+networks:
+  ros_robot_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
