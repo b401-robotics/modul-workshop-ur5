@@ -40,7 +40,6 @@ services:
     build: .
     container_name: foxglove_bridge
     ipc: host
-    # Open the websocket port to the Host OS so your native Foxglove app can connect
     ports:
       - "8765:8765"
     environment:
@@ -49,7 +48,13 @@ services:
       - ros_robot_net
     depends_on:
       - ur_driver
-    command: ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765
+    # MODIFIED: Forcing the node to bind to 0.0.0.0 and explicitly setting parameters
+    command: >
+      ros2 run foxglove_bridge foxglove_bridge_node
+      --ros-args 
+      -p port:=8765 
+      -p address:=0.0.0.0 
+      -p send_buffer_limit_bytes:=10000000
   
   # Service 4: Containerized Foxglove Studio Web App (Web UI on http://localhost:8081)
   foxglove_studio:
