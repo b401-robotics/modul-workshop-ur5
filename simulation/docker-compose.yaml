@@ -53,7 +53,7 @@ services:
   
   # Service 4: Containerized Foxglove Studio Web App (Web UI on http://localhost:8081)
   foxglove_studio:
-    image: ghcr.io/foxglove/studio:latest
+    image: husarion/foxglove:studio
     container_name: foxglove_studio_ui
     ports:
       - "8081:8080" # Maps container's internal 8080 port to host port 8081 to avoid conflict with URSim
