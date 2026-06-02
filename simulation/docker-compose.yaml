@@ -50,6 +50,17 @@ services:
     depends_on:
       - ur_driver
     command: ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765
+  
+  # Service 4: Containerized Foxglove Studio Web App (Web UI on http://localhost:8081)
+  foxglove_studio:
+    image: ghcr.io/foxglove/studio:latest
+    container_name: foxglove_studio_ui
+    ports:
+      - "8081:8080" # Maps container's internal 8080 port to host port 8081 to avoid conflict with URSim
+    networks:
+      - ros_robot_net
+    depends_on:
+      - foxglove_bridge
 
 # Define the custom bridge network with a specified subnet range
 networks:
