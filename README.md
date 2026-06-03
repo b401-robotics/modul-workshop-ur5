@@ -51,6 +51,9 @@ Sebelum memulai, pastikan perangkat lunak berikut sudah terinstal di mesin host:
 ```
 modul-workshop-ur5/
 ├── ursim_simulation/
+|   ├── Modul Workshop UR5.pdf
+|   └── readme.md
+├── ursim_simulation/
 │   ├── Dockerfile            # Image ROS 2 Humble dengan UR driver & Foxglove bridge
 │   └── docker-compose.yaml   
 └── README.md
