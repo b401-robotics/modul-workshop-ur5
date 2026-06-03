@@ -13,10 +13,15 @@ services:
     # We expose the browser VNC/noVNC port to the host machine
     ports:
       - "6080:6080"
+      - "29999:29999"
+      - "30001-30003:30001-30003"
     networks:
-      ros_robot_net:
-        ipv4_address: 172.20.0.10  # Assign a fixed static IP to URSim
-
+      - ros_robot_net
+    healthcheck:
+      test: ["CMD", "/bin/bash", "-c", "</dev/tcp/127.0.0.1/30002"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   # Service 2: The ROS 2 Driver targeting the fixed URSim IP
   ur_driver:
     build: .
@@ -25,15 +30,30 @@ services:
     environment:
       - ROS_DISTRO=humble
     # The robot_ip parameter is now hardcoded to match URSim's static network IP
+    entrypoint: ["/bin/bash", "-c"]
     command: >
-      ros2 launch ur_robot_driver ur_control.launch.py 
-      ur_type:=ur5 
-      robot_ip:=172.20.0.10 
-      launch_rviz:=false
+      "source /opt/ros/humble/setup.bash;
+       if [ -f /ros2_ws/install/setup.bash ]; then source /ros2_ws/install/setup.bash; fi;
+       
+       echo 'Starting UR ROS 2 Control Driver in background...';
+       ros2 launch ur_robot_driver ur_control.launch.py ur_type:=ur5 robot_ip:=ursim launch_rviz:=false &
+       
+       echo 'Waiting 15 seconds for driver to finish RTDE handshake with URSim...';
+       sleep 15;
+       
+       echo 'Spawning joint_state_broadcaster...';
+       ros2 run controller_manager spawner joint_state_broadcaster;
+       
+       echo 'Spawning scaled_joint_trajectory_controller...';
+       ros2 run controller_manager spawner scaled_joint_trajectory_controller;
+       
+       echo 'All hardware controllers loaded. keeping container alive...';
+       wait"
     networks:
       - ros_robot_net
     depends_on:
-      - ursim
+       ursim:
+          condition: service_healthy
 
   # Service 3: The Foxglove Bridge Node
   foxglove_bridge:
@@ -42,40 +62,20 @@ services:
     ipc: host
     ports:
       - "8765:8765"
-    environment:
-      - ROS_DISTRO=humble
     networks:
       - ros_robot_net
+    environment:
+      - ROS_DISTRO=humble
     depends_on:
       - ur_driver
     # MODIFIED: Forcing the node to bind to 0.0.0.0 and explicitly setting parameters
     command: >
-      ros2 run foxglove_bridge foxglove_bridge_node
-      --ros-args 
-      -p port:=8765 
-      -p address:=0.0.0.0 
-      -p send_buffer_limit_bytes:=10000000
-  
-  # Service 4: Containerized Foxglove Studio Web App (Web UI on http://localhost:8081)
-  foxglove_studio:
-    image: husarion/foxglove:studio
-    container_name: foxglove_studio_ui
-    ports:
-      - "8081:8080" # Maps container's internal 8080 port to host port 8081 to avoid conflict with URSim
-    volumes:
-      - ./foxglove_config:/foxglove
-    networks:
-      - ros_robot_net
-    depends_on:
-      - foxglove_bridge
+      ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765
 
 # Define the custom bridge network with a specified subnet range
 networks:
   ros_robot_net:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
 
 volumes:
   ursim_programs:
